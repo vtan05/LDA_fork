@@ -738,7 +738,7 @@ class Mirror(BaseEstimator, TransformerMixin):
 
 
 #################### Finedance Mirror ###################################
-class MirrorYbot(BaseEstimator, TransformerMixin):
+class MirrorFinedance(BaseEstimator, TransformerMixin):
     def __init__(self, axis="X", append=True):
         self.axis = axis
         self.append = append
@@ -2532,34 +2532,22 @@ class FeatureCounter(BaseEstimator, TransformerMixin):
         self.n_features = None  # Store number of features dynamically
 
     def fit(self, X, y=None):
-        """
-        Count the number of features AFTER other transformations.
-        """
-        if isinstance(X, list) and len(X) > 0:
-            self.n_features = len(X[0].values.columns)  # Count features dynamically
+        if isinstance(X, np.ndarray):
+            self.n_features = X.shape[-1]
+            print(f"\n📊 Final Feature Count: {self.n_features}")
+        elif isinstance(X, list) and len(X) > 0 and hasattr(X[0], 'values'):
+            self.n_features = len(X[0].values.columns)
+            print(f"\n📊 Final Feature Count: {self.n_features}")
         else:
-            raise ValueError("FeatureCounter received an empty dataset!")
-
-        print(f"\n📊 **Final Feature Count (After ConstantsRemover): {self.n_features}**")
-        print(f"Features: {X[0].values.columns.tolist()}")
+            raise ValueError("Unsupported data format for FeatureCounter.")
         return self
 
     def transform(self, X, y=None):
         return X
 
     def inverse_transform(self, X, copy=None):
-        """
-        Ensure the transformed data has the correct feature dimensions before inversion.
-        """
-        if self.n_features is None:
-            raise ValueError("FeatureCounter was not fitted properly. n_features is None.")
-
-        for track in X:
-            if len(track.values.columns) != self.n_features:
-                raise ValueError(
-                    f"Feature mismatch! Expected {self.n_features}, but got {len(track.values.columns)}."
-                )
-
+        self.n_features = X.shape[-1]
+        print(f"🔄 Updated Feature Count: {self.n_features}")
         return X
 
 #TODO: JointsSelector (x)

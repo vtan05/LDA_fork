@@ -43,12 +43,14 @@ class LoggingMixin:
         
     def feats_to_bvh(self, pred_clips):
         #import pdb;pdb.set_trace()
+        print(f"pred_clips: {pred_clips.shape}")
         data_pipeline = jl.load(Path(self.hparams.dataset_root) / self.hparams.Data["datapipe_filename"])
-        n_feats = data_pipeline["cnt"].n_features        
+        n_feats = data_pipeline["cnt"].n_features   
+        print(f"n_feats: {n_feats}")
         data_pipeline["root"].separate_root=False
         
         print('inverse_transform...')
-        bvh_data=data_pipeline.inverse_transform(pred_clips[:,:,:n_feats])
+        bvh_data=data_pipeline.inverse_transform(pred_clips[:,:,:n_feats]) 
         return bvh_data
         
     def write_bvh(self, bvh_data, log_dir="", name_prefix=""):

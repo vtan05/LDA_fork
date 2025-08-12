@@ -121,6 +121,8 @@ class LitLDA(BaseModel):
         ctrl, g_cond, _ =batch
         clips = self.synthesize(ctrl, g_cond)
 
+        # print(f"clips shape: {clips.shape}")
+        # print(f"Synthesized clips shape: {self.pose_dim.shape}")
         self.log_jerk(clips[:,:,:self.pose_dim], log_prefix)
         file_name = f"{self.current_epoch}_{self.global_step}_{log_prefix}"
         self.log_results(clips.cpu().detach().numpy(), file_name, log_prefix, render_video=False)
@@ -136,6 +138,7 @@ class LitLDA(BaseModel):
     def synthesize(self, ctrl, global_cond):
         print("synthesize")
 
+        # print(f"ctrl shape: {ctrl.shape}, global_cond shape: {global_cond.shape}")
         training_noise_schedule = self.noise_schedule.to(ctrl.device)
         inference_noise_schedule = training_noise_schedule
 
@@ -178,6 +181,6 @@ class LitLDA(BaseModel):
         if not self.unconditional:
             out_ctrl = self.destandardizeInput(ctrl)
             anim_clip = torch.cat((anim_clip, out_ctrl), dim=2) 
-
+        # print(f"Synthesized animation clip shape: {anim_clip.shape}")
         return anim_clip
     

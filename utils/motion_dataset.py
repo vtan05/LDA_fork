@@ -167,6 +167,7 @@ class MotionDataset(torch.utils.data.Dataset):
         if self.n_styles>0:
             data["styles"]=torch.from_numpy(np.vstack(data["styles"])).float()        
         print(f"=== tot number of frames: {data['output'].shape[0]} =====")
+        print(f"=== tot number of joints: {data['output'].shape[1]} =====")
 
         self.data = data
 
