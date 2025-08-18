@@ -105,8 +105,8 @@ if __name__ == "__main__":
     ''' 
     Preprocess setup
     '''
-    fps = 30 # for motorica
-    # fps = 24 # for finedance
+    # fps = 30 # for motorica
+    fps = 24 # for finedance
     joints = ['Hips', 'Spine','Spine1','Neck','Head','RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'RightUpLeg', 'RightLeg', 'RightFoot', 'LeftUpLeg', 'LeftLeg', 'LeftFoot']
     data_pipe = Pipeline([
         ('dwnsampl', DownSampler(tgt_fps=fps)),
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     '''
     Compute jitter metric for all motions and get mean
     '''
-    data_dir = "/host_data/van/LDA/results/motorica/"
+    data_dir = "/host_data/van/LDA/results/finedance"
     # bvh
     measure_jitter_bvh(data_pipe, data_dir, fps)
     

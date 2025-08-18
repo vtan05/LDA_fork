@@ -5,19 +5,27 @@ from pymo.preprocessing import *
 from sklearn.pipeline import Pipeline
 
 # === Configuration ===
-fps = 30
+fps = 24 ## 24 for finedance, 30 for motorica
 slide_threshold = 0.005       # Tangential velocity threshold for sliding
 contact_threshold = 0.05      # Max Y from virtual ground to consider contact
 print_debug = False           # Toggle per-frame debug logging
 
 # BVH joint names used in your pipeline
+# joints = [
+#     'Hips', 'Spine','Spine1','Neck','Head',
+#     'RightShoulder', 'RightArm', 'RightForeArm', 'RightHand',
+#     'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand',
+#     'RightUpLeg', 'RightLeg', 'RightFoot',
+#     'LeftUpLeg', 'LeftLeg', 'LeftFoot'
+# ]
+
 joints = [
-    'Hips', 'Spine','Spine1','Neck','Head',
+    'Hips', 'Spine','Spine1', 'Spine2','Neck','Head',
     'RightShoulder', 'RightArm', 'RightForeArm', 'RightHand',
     'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand',
     'RightUpLeg', 'RightLeg', 'RightFoot',
     'LeftUpLeg', 'LeftLeg', 'LeftFoot'
-]
+] ## finedance joints
 
 data_pipe = Pipeline([
     ('dwnsampl', DownSampler(tgt_fps=fps)),
@@ -70,7 +78,7 @@ def calc_foot_skating_ratio_bvh(joint_pos, joint_names, ground_height=0, slide_t
 
 # === Main Script ===
 if __name__ == '__main__':
-    bvh_dir = '/host_data/van/LDA/results/motorica'  # <-- Replace if needed
+    bvh_dir = '/host_data/van/LDA/results/finedance'  # <-- Replace if needed
 
     left_ratio_list = []
     right_ratio_list = []

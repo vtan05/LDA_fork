@@ -7,6 +7,7 @@ import pickle as pkl
 from pytorch_lightning import Trainer, seed_everything
 from utils.motion_dataset import styles2onehot, nans2zeros
 from models.LightningModel import LitLDA
+import time
 
 def sample_mixmodels(models, batches, guidance_factors):
     # asserts that the models are compatible, 
@@ -80,7 +81,10 @@ def do_synthesize(models, l_conds, g_conds, file_name, postfix, trim, dest_dir, 
         batches.append(batch)
     
     with torch.no_grad():
-        clips = sample_mixmodels(models, batches, guidance_factors)        
+        cpu_start = time.time()
+        clips = sample_mixmodels(models, batches, guidance_factors)   
+        infer_ms = (time.time() - cpu_start) * 1000.0        # ms     
+        print(f"Inference: {infer_ms:.3f} ms per sample (~{infer_ms/(1000):.3f} s)")
         models[-1].log_results(clips[:,trim:nframes-trim,:], outfile, "", logdir=dest_dir, render_video=render_video)
 
 def nans2zeros(x):
