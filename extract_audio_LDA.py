@@ -52,18 +52,18 @@ def process_wav_files(directory, out_directory):
             dataframe = dataframe.fillna(dataframe.mean())
             dataframe.index = pd.Series([pd.Timedelta(seconds=(1/sig.sample_rate) * i) for i in range(len(dataframe.index))])
 
-            output_file = os.path.join(out_directory, f"{os.path.splitext(filename)[0]}.audio29_30fps.pkl")
+            output_file = os.path.join(out_directory, f"aist_{os.path.splitext(filename)[0]}.audio29_30fps.pkl")
             with open(output_file, 'wb') as file:
                 pickle.dump(dataframe, file)
             
-            output_file = os.path.join(out_directory, f"{os.path.splitext(filename)[0]}_mirrored.audio29_30fps.pkl")
-            with open(output_file, 'wb') as file:
-                pickle.dump(dataframe, file)
+            # output_file = os.path.join(out_directory, f"{os.path.splitext(filename)[0]}_mirrored.audio29_30fps.pkl")
+            # with open(output_file, 'wb') as file:
+            #     pickle.dump(dataframe, file)
 
 
 if __name__ == '__main__':
 
-    directory = r"/host_data/van/LDA/data/motorica/wav" # Replace with the path to your directory containing WAV files
-    out_directory = r"/host_data/van/LDA/data/motorica/feat"
+    directory = r"/host_data/van/LDA/data/edge_aistpp/wavs" # Replace with the path to your directory containing WAV files
+    out_directory = r"/host_data/van/LDA/data/edge_aistpp/feat"
 
     process_wav_files(directory, out_directory)

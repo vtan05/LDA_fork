@@ -1,7 +1,7 @@
 #!/bin/bash
 
 checkpoint=/host_data/van/LDA/model/finedance/lightning_logs/version_0/checkpoints/epoch=9-step=21480.ckpt
-dest_dir=/host_data/van/LDA/results/finedance
+dest_dir=/host_data/van/LDA/results/finedance_160s
 
 if [ ! -d "${dest_dir}" ]; then
     mkdir -p "${dest_dir}"
@@ -15,7 +15,7 @@ start=0
 seed=150
 fps=24
 trim_s=0
-length_s=10
+length_s=160
 trim=$((trim_s*fps))
 length=$((length_s*fps))
 fixed_seed=false

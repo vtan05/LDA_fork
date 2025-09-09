@@ -1130,7 +1130,7 @@ class Numpyfier(BaseEstimator, TransformerMixin):
 
         print(f"\n📌 **Numpyfier Fit Complete (After ConstantsRemover)**")
         print(f"Expected Feature Count: {len(self.selected_columns_)}")
-        print(f"Feature Names: {self.selected_columns_[:10]} ... (truncated)")
+        print(f"Feature Names: {self.selected_columns_}")
 
         return self
 
