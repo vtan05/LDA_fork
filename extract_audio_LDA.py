@@ -63,7 +63,7 @@ def process_wav_files(directory, out_directory):
 
 if __name__ == '__main__':
 
-    directory = r"/host_data/van/LDA/data/edge_aistpp/wavs" # Replace with the path to your directory containing WAV files
-    out_directory = r"/host_data/van/LDA/data/edge_aistpp/feat"
+    directory = r"/host_data/van/LDA/data/finedance/music_wav" # Replace with the path to your directory containing WAV files
+    out_directory = r"/host_data/van/LDA/data/finedance/feat"
 
     process_wav_files(directory, out_directory)

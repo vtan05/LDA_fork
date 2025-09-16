@@ -1,7 +1,7 @@
 Data:
   segment_length: 150
   style_index: [1]
-  trim_edges: 300
+  trim_edges: 15
   styles_file: styles_unique.txt
   traindata_filename: crossmodal_train.txt
   testdata_filename: crossmodal_test.txt

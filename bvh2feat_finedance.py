@@ -91,7 +91,7 @@ def extract_joint_angles(bvh_dir, file, dest_dir, pipeline_dir, error_dir, fps):
             jl.dump(data_pipeline, os.path.join(pipeline_dir, 'data_pipe_no_mirror.sav'))
             
             print("Saving features for file (without mirror):", file)
-            with open(os.path.join(dest_dir, file + ".expmap_24fps.pkl"), 'wb') as fp:
+            with open(os.path.join(dest_dir, file + ".expmap_30fps.pkl"), 'wb') as fp:
                 df2 = pd.DataFrame(out_data[0], columns=index)
                 df2.index = pd.Series([pd.Timedelta(seconds=(1/fps) * i) for i in range(len(df2.index))])
                 pkl.dump(df2, fp)
@@ -107,7 +107,7 @@ if __name__ == '__main__':
 
     # Setup parameter parser
     parser = ArgumentParser()
-    parser.add_argument('--bvh_dir', '-orig', default=r"/host_data/van/LDA/data/finedance/ybot_bvh",
+    parser.add_argument('--bvh_dir', '-orig', default=r"/host_data/van/LDA/data/finedance/bvh_30fps",
                                    help="Path where original motion files (in BVH format) are stored")
     parser.add_argument('--dest_dir', '-dest', default=r"/host_data/van/LDA/data/finedance/feat",
                                    help="Path where extracted motion features will be stored")
@@ -134,4 +134,4 @@ if __name__ == '__main__':
                 files.append(basename)
 
     for file in files:
-        extract_joint_angles(params.bvh_dir, file, params.dest_dir, params.pipeline_dir, params.error_dir, fps=24)
+        extract_joint_angles(params.bvh_dir, file, params.dest_dir, params.pipeline_dir, params.error_dir, fps=30)

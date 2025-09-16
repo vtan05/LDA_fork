@@ -1128,9 +1128,9 @@ class Numpyfier(BaseEstimator, TransformerMixin):
             self.selected_columns_ = all_columns
             self.selected_indices_ = list(range(len(all_columns)))
 
-        print(f"\n📌 **Numpyfier Fit Complete (After ConstantsRemover)**")
-        print(f"Expected Feature Count: {len(self.selected_columns_)}")
-        print(f"Feature Names: {self.selected_columns_}")
+        # print(f"\n📌 **Numpyfier Fit Complete (After ConstantsRemover)**")
+        # print(f"Expected Feature Count: {len(self.selected_columns_)}")
+        # print(f"Feature Names: {self.selected_columns_}")
 
         return self
 
@@ -1138,7 +1138,7 @@ class Numpyfier(BaseEstimator, TransformerMixin):
         """
         Converts MocapData tracks into NumPy arrays with uniform shape.
         """
-        print("\n📢 **Numpyfier: Converting MocapData to NumPy array (After ConstantsRemover)**")
+        # print("\n📢 **Numpyfier: Converting MocapData to NumPy array (After ConstantsRemover)**")
 
         if not X:
             raise ValueError("Numpyfier received an empty dataset during transform!")
@@ -1156,7 +1156,7 @@ class Numpyfier(BaseEstimator, TransformerMixin):
         max_rows = max(track.shape[0] for track in Q)
         max_cols = max(track.shape[1] for track in Q)
 
-        print(f"🛠 Padding sequences to uniform shape: (max {max_rows} frames, {max_cols} features)")
+        # print(f"🛠 Padding sequences to uniform shape: (max {max_rows} frames, {max_cols} features)")
 
         # Pad tracks to the same shape with zeros
         padded_Q = [np.pad(track, ((0, max_rows - track.shape[0]), (0, max_cols - track.shape[1])) ,
@@ -1164,7 +1164,7 @@ class Numpyfier(BaseEstimator, TransformerMixin):
 
         stacked_array = np.stack(padded_Q)
 
-        print(f"✅ Final Data Shape: {stacked_array.shape} (samples, time, features)")
+        # print(f"✅ Final Data Shape: {stacked_array.shape} (samples, time, features)")
         return stacked_array
 
     def inverse_transform(self, X, copy=None):
@@ -1178,8 +1178,8 @@ class Numpyfier(BaseEstimator, TransformerMixin):
 
         # ✅ **Ensure Feature Count Matches**
         if actual_feature_count != len(self.selected_columns_):
-            print(f"⚠️ Feature count mismatch in inverse_transform: Expected {len(self.selected_columns_)}, Got {actual_feature_count}")
-            print(f"📌 Adjusting column list to match actual data...")
+            # print(f"⚠️ Feature count mismatch in inverse_transform: Expected {len(self.selected_columns_)}, Got {actual_feature_count}")
+            # print(f"📌 Adjusting column list to match actual data...")
 
             # Trim feature names if too many, extend with placeholders if too few
             self.selected_columns_ = self.selected_columns_[:actual_feature_count]
@@ -1202,7 +1202,7 @@ class Numpyfier(BaseEstimator, TransformerMixin):
             new_mocap.values = new_df
             Q.append(new_mocap)
 
-        print(f"✅ Successfully converted {len(Q)} tracks back to MocapData format.")
+        # print(f"✅ Successfully converted {len(Q)} tracks back to MocapData format.")
         return Q
 
 
