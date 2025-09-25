@@ -31,7 +31,7 @@ def extract_joint_angles(bvh_dir, file, dest_dir, pipeline_dir, error_dir, fps):
     ff = os.path.join(bvh_dir, file + '.bvh')
     print("Processing file:", ff)
     data = p.parse(ff)
-    # print_skel(data)
+    print_skel(data)
 
     index = ['RightFoot_alpha', 'RightFoot_beta', 'RightFoot_gamma',
             'RightLeg_alpha', 'RightLeg_beta', 'RightLeg_gamma', 'RightUpLeg_alpha',
@@ -75,7 +75,7 @@ def extract_joint_angles(bvh_dir, file, dest_dir, pipeline_dir, error_dir, fps):
             ('root', RootTransformer('pos_rot_deltas', position_smoothing=1, rotation_smoothing=1)),
             ('drop', ColumnDropper(['Hips_Xposition', 'Hips_Zposition'])),
             ('exp', MocapParameterizer('expmap')),
-            ('cnst', ConstantsRemover()),
+            # ('cnst', ConstantsRemover()),
             ('npf', Numpyfier(indices=index)),
             ('cnt', FeatureCounter())
         ]
@@ -86,12 +86,13 @@ def extract_joint_angles(bvh_dir, file, dest_dir, pipeline_dir, error_dir, fps):
         out_data = data_pipeline.fit_transform([data])
         print(out_data[0].shape)
         n_feats = data_pipeline["cnt"].n_features
+        # print("Number of features:", n_feats)
 
         if n_feats == 64:
             jl.dump(data_pipeline, os.path.join(pipeline_dir, 'data_pipe_no_mirror.sav'))
             
             print("Saving features for file (without mirror):", file)
-            with open(os.path.join(dest_dir, file + ".expmap_30fps.pkl"), 'wb') as fp:
+            with open(os.path.join(dest_dir, file + ".expmap_30fps_v2.pkl"), 'wb') as fp:
                 df2 = pd.DataFrame(out_data[0], columns=index)
                 df2.index = pd.Series([pd.Timedelta(seconds=(1/fps) * i) for i in range(len(df2.index))])
                 pkl.dump(df2, fp)
@@ -107,7 +108,7 @@ if __name__ == '__main__':
 
     # Setup parameter parser
     parser = ArgumentParser()
-    parser.add_argument('--bvh_dir', '-orig', default=r"/host_data/van/LDA/data/finedance/bvh_30fps",
+    parser.add_argument('--bvh_dir', '-orig', default=r"//host_data/van/LDA/data/finedance/ybot_bvh",
                                    help="Path where original motion files (in BVH format) are stored")
     parser.add_argument('--dest_dir', '-dest', default=r"/host_data/van/LDA/data/finedance/feat",
                                    help="Path where extracted motion features will be stored")
@@ -127,7 +128,7 @@ if __name__ == '__main__':
     print("Going to pre-process the following motion files:")
     for r, d, f in os.walk(params.bvh_dir):
         for file in f:
-            print(file)
+            # print(file)
             if '.bvh' in file:
                 ff = os.path.join(r, file)
                 basename = os.path.splitext(os.path.basename(ff))[0]

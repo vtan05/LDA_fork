@@ -1,7 +1,7 @@
 Data:
   segment_length: 150
   style_index: [1]
-  trim_edges: 300
+  trim_edges: 150
   styles_file: styles.txt
   traindata_filename: train_list.txt
   testdata_filename: test_list.txt
@@ -64,7 +64,7 @@ Optim:
 Validation:
   render: true
   apply_dropout: false
-  render_every_n_epochs: 1
+  render_every_n_epochs: 5
   max_render_clips: 10
   gen_synth_ctrl: false
 lr: 0.0006
