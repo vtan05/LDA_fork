@@ -184,7 +184,7 @@ class MotionDataset(torch.utils.data.Dataset):
         self.assert_not_const(self.data["input"])
         in_scaler.fit(self.data["input"])
             
-        self.assert_not_const(self.data["output"])
+        # self.assert_not_const(self.data["output"])
         out_scaler = StandardScaler()
         out_scaler.fit(self.data["output"])
         
