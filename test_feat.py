@@ -17,7 +17,7 @@ if __name__ == "__main__":
     '''
     parser = BVHParser()
     # parsed_data = parser.parse(r"/host_data/van/LDA/data/motorica/bvh/kthjazz_gCH_sFM_cAll_d02_mCH_ch01_royalgardenblues_002.bvh")
-    parsed_data = parser.parse(r"/host_data/van/LDA/data/finedance/motorica_bvh/001.bvh")
+    parsed_data = parser.parse(r"/host_data/van/LDA/data/finedance/motorica_bvh/finedance_ClassicDunHuang_sFM_cAll_d02_mClassic_ch01_xuangupiao_051.bvh")
     # parsed_data = parser.parse(r"/host_data/van/LDA/data/finedance/motorica_bvh_v2/002.bvh")
     # parsed_data = parser.parse(r"/host_data/van/LDA/data/finedance/ybot_bvh/ybot__006.bvh")
 #     print_skel(parsed_data)

@@ -59,7 +59,7 @@ def extract_joint_angles(bvh_dir, file, dest_dir, pipeline_dir, error_dir, fps):
 
         # Insert mirror early
         if include_mirror:
-            steps.append(('mir', Mirror(axis='X', append=True)))
+            steps.append(('mir', Mirror_New(axis='X', append=True)))
 
         # Then do joint selection and other transforms
         steps += [
@@ -69,14 +69,13 @@ def extract_joint_angles(bvh_dir, file, dest_dir, pipeline_dir, error_dir, fps):
                 'LeftUpLeg','LeftLeg', 'LeftFoot',
                 'RightShoulder','RightArm','RightForeArm','RightHand',
                 'LeftShoulder','LeftArm','LeftForeArm','LeftHand'
-            ], include_root=True)),
+                ], include_root=True)),  
 
             ('root', RootTransformer('pos_rot_deltas', position_smoothing=1, rotation_smoothing=1)),
-            ('drop', ColumnDropper(['Hips_Xposition', 'Hips_Zposition'])),
-            ('exp', MocapParameterizer('expmap')),
-            # ('cnst', ConstantsRemover()),
+            ('exp', MocapParameterizer('expmap')), 
+            ('posdrop', PositionDropper(keep_root_y=True)),
+            ('npf', Numpyfier()),
             ('cnt', FeatureCounter()),
-            ('npf', Numpyfier(indices=index))
         ]
         return Pipeline(steps)
 
@@ -126,13 +125,13 @@ if __name__ == '__main__':
 
     # Setup parameter parser
     parser = ArgumentParser()
-    parser.add_argument('--bvh_dir', '-orig', default=r"/host_data/van/LDA/data/motorica/bvh",
+    parser.add_argument('--bvh_dir', '-orig', default=r"/host_data/van/LDA/data/finedance/motorica_bvh",
                                    help="Path where original motion files (in BVH format) are stored")
-    parser.add_argument('--dest_dir', '-dest', default=r"/host_data/van/LDA/data/motorica/feat",
+    parser.add_argument('--dest_dir', '-dest', default=r"/host_data/van/LDA/data/finedance/feat",
                                    help="Path where extracted motion features will be stored")
-    parser.add_argument('--pipeline_dir', '-pipe', default=r"/host_data/van/LDA/data/motorica/feat",
+    parser.add_argument('--pipeline_dir', '-pipe', default=r"/host_data/van/LDA/data/finedance/feat",
                         help="Path where the motion data processing pipeline will be stored")
-    parser.add_argument('--error_dir', '-err', default=r"/host_data/van/LDA/data/motorica/error_bvh",
+    parser.add_argument('--error_dir', '-err', default=r"/host_data/van/LDA/data/finedance/error_bvh",
                         help="Path where BVH files with errors will be moved")
 
     params = parser.parse_args()
@@ -146,7 +145,7 @@ if __name__ == '__main__':
     print("Going to pre-process the following motion files:")
     for r, d, f in os.walk(params.bvh_dir):
         for file in f:
-            print(file)
+            # print(file)
             if '.bvh' in file:
                 ff = os.path.join(r, file)
                 basename = os.path.splitext(os.path.basename(ff))[0]

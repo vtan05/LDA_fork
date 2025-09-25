@@ -4,8 +4,8 @@ import shutil
 
 # === Directory paths ===
 json_dir = "/host_data/van/LDA/data/finedance/label_json"
-wav_dir = "/host_data/van/LDA/data/finedance/music_wav"
-bvh_dir = "/host_data/van/LDA/data/finedance/ybot_bvh"
+# wav_dir = "/host_data/van/LDA/data/finedance/music_wav"
+bvh_dir = "/host_data/van/LDA/data/finedance/motorica_bvh"
 
 # === Helper function ===
 def get_id_from_filename(fname):
@@ -13,7 +13,8 @@ def get_id_from_filename(fname):
     if fname.endswith(".wav"):
         return os.path.splitext(fname)[0]
     elif fname.endswith(".bvh"):
-        return os.path.splitext(fname)[0].split("_")[-1]
+        # return os.path.splitext(fname)[0].split("_")[-1] ## if filename is ybot_001.bvh
+        return os.path.splitext(fname)[0]
     else:
         return None
 
@@ -32,17 +33,26 @@ for json_file in os.listdir(json_dir):
     # Format new filename
     new_base = f"finedance_{meta['style1']}{meta['style2']}_sFM_cAll_d02_m{meta['style1']}_ch01_{meta['name']}_{id_num}"
 
-    # Rename WAV
-    wav_old = os.path.join(wav_dir, f"{id_num}.wav")
-    wav_new = os.path.join(wav_dir, f"{new_base}.wav")
-    if os.path.exists(wav_old):
-        os.rename(wav_old, wav_new)
-        print(f"Renamed WAV: {wav_old} -> {wav_new}")
-    else:
-        print(f"Missing WAV: {wav_old}")
+    # # Rename WAV
+    # wav_old = os.path.join(wav_dir, f"{id_num}.wav")
+    # wav_new = os.path.join(wav_dir, f"{new_base}.wav")
+    # if os.path.exists(wav_old):
+    #     os.rename(wav_old, wav_new)
+    #     print(f"Renamed WAV: {wav_old} -> {wav_new}")
+    # else:
+    #     print(f"Missing WAV: {wav_old}")
+
+    # # Rename BVH
+    # bvh_old = os.path.join(bvh_dir, f"ybot_{id_num}.bvh")
+    # bvh_new = os.path.join(bvh_dir, f"{new_base}.bvh")
+    # if os.path.exists(bvh_old):
+    #     os.rename(bvh_old, bvh_new)
+    #     print(f"Renamed BVH: {bvh_old} -> {bvh_new}")
+    # else:
+    #     print(f"Missing BVH: {bvh_old}")
 
     # Rename BVH
-    bvh_old = os.path.join(bvh_dir, f"ybot_{id_num}.bvh")
+    bvh_old = os.path.join(bvh_dir, f"{id_num}.bvh")
     bvh_new = os.path.join(bvh_dir, f"{new_base}.bvh")
     if os.path.exists(bvh_old):
         os.rename(bvh_old, bvh_new)
