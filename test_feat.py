@@ -74,7 +74,7 @@ if __name__ == "__main__":
         # ('drop', ColumnDropper(['Hips_Xposition', 'Hips_Zposition'])),
         ('exp', MocapParameterizer('expmap')), 
         ('posdrop', PositionDropper(keep_root_y=True)),
-        ('npf', Numpyfier()),
+        ('npf', Numpyfier(indices=index)),
         ('cnt', FeatureCounter()),
     ])
     piped_data = data_pipeline.fit_transform([parsed_data])

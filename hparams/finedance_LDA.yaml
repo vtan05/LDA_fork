@@ -3,7 +3,7 @@ Data:
   style_index: [1]
   trim_edges: 150
   styles_file: styles.txt
-  traindata_filename: train_list.txt
+  traindata_filename: test_list.txt #####################
   testdata_filename: test_list.txt
   input_modality: audio29_30fps
   output_modality: expmap_30fps

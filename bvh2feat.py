@@ -74,7 +74,7 @@ def extract_joint_angles(bvh_dir, file, dest_dir, pipeline_dir, error_dir, fps):
             ('root', RootTransformer('pos_rot_deltas', position_smoothing=1, rotation_smoothing=1)),
             ('exp', MocapParameterizer('expmap')), 
             ('posdrop', PositionDropper(keep_root_y=True)),
-            ('npf', Numpyfier()),
+            ('npf', Numpyfier(indices=index)),
             ('cnt', FeatureCounter()),
         ]
         return Pipeline(steps)

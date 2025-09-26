@@ -75,6 +75,7 @@ class LitLDA(BaseModel):
         ctrl, global_cond, poses =batch
                 
         N, T, C = poses.shape
+        # print(f"poses shape: {poses.shape}, ctrl shape: {ctrl.shape}, global_cond shape: {global_cond.shape}")
 
         num_noisesteps = self.n_noise_schedule
         t = torch.randint(0, num_noisesteps, [N], device=poses.device)
@@ -85,6 +86,7 @@ class LitLDA(BaseModel):
         noisy_poses = noise_scale_sqrt * poses + (1.0 - noise_scale)**0.5 * noise
         noisy_poses, noise = self.diffusion(poses, t)
         predicted = self.diffusion_model(noisy_poses, ctrl, global_cond, t)
+        # print(f"predicted shape: {predicted.shape}, noise shape: {noise.shape}")
 
         loss = self.loss_fn(noise, predicted.squeeze(1))
                 
@@ -178,9 +180,10 @@ class LitLDA(BaseModel):
                 poses += sigma * noise
                 
         anim_clip = self.destandardizeOutput(poses)
+        
         if not self.unconditional:
             out_ctrl = self.destandardizeInput(ctrl)
+            # print(f"anim_clip shape: {anim_clip.shape}, out_ctrl shape: {out_ctrl.shape}")
             anim_clip = torch.cat((anim_clip, out_ctrl), dim=2) 
-        # print(f"Synthesized animation clip shape: {anim_clip.shape}")
         return anim_clip
     
