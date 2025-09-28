@@ -183,7 +183,7 @@ class LitLDA(BaseModel):
         
         if not self.unconditional:
             out_ctrl = self.destandardizeInput(ctrl)
-            # print(f"anim_clip shape: {anim_clip.shape}, out_ctrl shape: {out_ctrl.shape}")
+            print(f"anim_clip shape: {anim_clip.shape}, out_ctrl shape: {out_ctrl.shape}")
             anim_clip = torch.cat((anim_clip, out_ctrl), dim=2) 
         return anim_clip
     

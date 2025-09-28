@@ -1069,32 +1069,30 @@ class Numpyfier(BaseEstimator, TransformerMixin):
     """
 
     def __init__(self, indices=None):
-        """
-        :param indices: List of column names OR indices to keep. If None, keeps all columns AFTER preprocessing.
-        """
         self.indices = indices
         self.selected_indices_ = None
         self.selected_columns_ = None
         self.org_mocap_ = None
+        self.full_columns_ = None  # <— NEW: full schema right before Numpyfier
 
     def fit(self, X, y=None):
-        """
-        Determines which columns to keep based on `ConstantsRemover` output.
-        """
         if not X:
             raise ValueError("Numpyfier received an empty dataset!")
 
-        # Clone the first MocapData instance as a reference
+        # Reference structure just before Numpyfier
         self.org_mocap_ = X[0].clone()
-        self.org_mocap_.values = self.org_mocap_.values.iloc[:0]  # Keep structure but remove rows
+        # Full schema at this pipeline point (what upstream inverse expects later)
+        self.full_columns_ = self.org_mocap_.values.columns.tolist()
 
-        all_columns = self.org_mocap_.values.columns.tolist()
+        # If you really want to clear rows on the stored template:
+        self.org_mocap_.values = self.org_mocap_.values.iloc[:0]
 
-        #**Get Features AFTER `ConstantsRemover`**
+        all_columns = self.full_columns_
+
+        # If a previous step sets a reduced feature list (not used in your pipeline now)
         if hasattr(self, 'post_constant_columns_'):
             all_columns = self.post_constant_columns_
 
-        # Ensure indices match actual columns
         if self.indices is not None:
             if all(isinstance(i, str) for i in self.indices):
                 self.selected_columns_ = [col for col in self.indices if col in all_columns]
@@ -1115,74 +1113,66 @@ class Numpyfier(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X, y=None):
-        """
-        Converts MocapData tracks into NumPy arrays with uniform shape.
-        """
         print("\n**Numpyfier: Converting MocapData to NumPy array (After ConstantsRemover)**")
-
         if not X:
             raise ValueError("Numpyfier received an empty dataset during transform!")
 
-        # Convert each track's DataFrame into a NumPy array, filtering by selected indices
         Q = []
         for i, track in enumerate(X):
             try:
-                filtered_data = track.values.iloc[:, self.selected_indices_].to_numpy()
-                Q.append(filtered_data)
+                filtered = track.values.iloc[:, self.selected_indices_].to_numpy()
+                Q.append(filtered)
             except Exception as e:
                 print(f"⚠️ Error processing track {i}: {e}")
 
-        # Determine max sequence length and feature count
-        max_rows = max(track.shape[0] for track in Q)
-        max_cols = max(track.shape[1] for track in Q)
-
-        # Pad tracks to the same shape with zeros
-        padded_Q = [np.pad(track, ((0, max_rows - track.shape[0]), (0, max_cols - track.shape[1])) ,
-                            mode='constant', constant_values=0) for track in Q]
-
-        stacked_array = np.stack(padded_Q)
-
-        print(f"Final Data Shape: {stacked_array.shape} (samples, time, features)")
-        return stacked_array
+        max_rows = max(a.shape[0] for a in Q)
+        max_cols = max(a.shape[1] for a in Q)
+        padded = [np.pad(a, ((0, max_rows - a.shape[0]), (0, max_cols - a.shape[1])), mode='constant') for a in Q]
+        arr = np.stack(padded)
+        print(f"Final Data Shape: {arr.shape} (samples, time, features)")
+        return arr
 
     def inverse_transform(self, X, copy=None):
-        """
-        Converts NumPy arrays back into MocapData objects with original column names.
-        """
         print("\n🔄 **Numpyfier: Performing inverse transformation**")
+
+        if self.full_columns_ is None:
+            raise RuntimeError("Numpyfier.inverse_transform called before fit().")
 
         Q = []
         actual_feature_count = X.shape[2]
 
-        # **Ensure Feature Count Matches**
+        # Align selected column count to the array width
         if actual_feature_count != len(self.selected_columns_):
             print(f"⚠️ Feature count mismatch in inverse_transform: Expected {len(self.selected_columns_)}, Got {actual_feature_count}")
-            print(f"Adjusting column list to match actual data...")
-
-            # Trim feature names if too many, extend with placeholders if too few
             self.selected_columns_ = self.selected_columns_[:actual_feature_count]
 
-        for i, track in enumerate(X):
-            # Clone the original structure
+        full_schema = self.full_columns_
+
+        for i, sample in enumerate(X):
+            # base template
             new_mocap = self.org_mocap_.clone()
+            time_index = pd.RangeIndex(start=0, stop=sample.shape[0], step=1)
 
-            if track.shape[1] != len(self.selected_columns_):
-                print(f"⚠️ Shape mismatch in track {i}: Expected {len(self.selected_columns_)}, Got {track.shape[1]}")
-                continue  # Skip this track to avoid crashes
+            # 1) DataFrame with the selected columns coming from the model
+            df_sel = pd.DataFrame(data=sample, index=time_index, columns=self.selected_columns_)
 
-            # Create time index (assuming uniform time step)
-            time_index = pd.RangeIndex(start=0, stop=track.shape[0], step=1)
+            # 2) Add back ALL missing columns from the full schema as zeros
+            missing = [c for c in full_schema if c not in df_sel.columns]
+            if missing:
+                zeros = pd.DataFrame(0.0, index=time_index, columns=missing)
+                df_full = pd.concat([df_sel, zeros], axis=1)
+            else:
+                df_full = df_sel
 
-            # Recreate DataFrame using selected columns
-            new_df = pd.DataFrame(data=track, index=time_index, columns=self.selected_columns_)
+            # 3) Reorder to the original schema
+            df_full = df_full[full_schema]
 
-            # Assign back to MocapData object
-            new_mocap.values = new_df
+            new_mocap.values = df_full
             Q.append(new_mocap)
 
         print(f"Successfully converted {len(Q)} tracks back to MocapData format.")
         return Q
-
+        
 
 class Slicer(BaseEstimator, TransformerMixin):
     '''
@@ -2372,6 +2362,9 @@ class FeatureCounter(BaseEstimator, TransformerMixin):
         return X
 
     def inverse_transform(self, X, copy=None):
+        if isinstance(X, list):
+            X = np.array(X)   # convert list to numpy array
+
         self.n_features = X.shape[-1]
         print(f"🔄 Updated Feature Count: {self.n_features}")
         return X
@@ -2435,125 +2428,149 @@ class ColumnDropper(BaseEstimator, TransformerMixin):
 
 class PositionDropper(BaseEstimator, TransformerMixin):
     """
-    Drops all per-joint position channels (*_Xposition, *_Yposition, *_Zposition)
-    while keeping specified exceptions. By default, keeps 'Hips_Yposition'.
-    Caches dropped columns per track so inverse_transform restores originals.
+    ConstantsRemover-style position dropper:
+      - fit(): decide once which *_Xposition/_Yposition/_Zposition to drop
+      - transform(): drop them & cache originals per track
+      - inverse_transform(): restore from cache in one batch
+    Crucially: keeps root XYZ so upstream inverse steps (e.g., RootTransformer) never KeyError.
     """
 
     def __init__(self,
-                 keep_root_y: bool = False,
+                 keep_root_xyz: bool = True,
                  keep_names: list = None,
-                 default_keep_hips_y: bool = True):
-        """
-        Args:
-            keep_root_y: If True, also keep '<root_name>_Yposition' for each track.
-            keep_names: Additional column names to preserve (list of strings).
-            default_keep_hips_y: Keep 'Hips_Yposition' explicitly (case-sensitive).
-        """
-        self.keep_root_y = keep_root_y
+                 root_candidates: list = None):
+        self.keep_root_xyz = keep_root_xyz
         self.keep_names = list(keep_names) if keep_names else []
-        self.default_keep_hips_y = default_keep_hips_y
+        self.root_candidates = root_candidates or ["Hips", "Root", "Pelvis", "root", "pelvis"]
 
-        # learned/derived state
-        self.drop_cols_ = None    # columns to drop (computed per the first fit schema)
-        self.keep_set_ = None     # names to keep based on init + (optionally) root at transform-time
-        self.schema_ = None       # full schema for sanity checks
+        # learned in fit()
+        self.drop_cols_ = []
+        self.schema_ = None
 
-        # per-transform cache: list of dicts {col_name: pd.Series} aligned to input order
-        self._cache_per_track_ = None
+        # filled in transform()
+        self._cache_per_track_ = None  # list[pd.DataFrame] of dropped columns per track
 
-    def _compute_drop_cols(self, columns, root_name=None):
-        """Return (drop_cols, keep_set) based on current settings and provided schema."""
-        keep_set = set(self.keep_names)
-        if self.default_keep_hips_y:
-            keep_set.add("Hips_Yposition")
-        if self.keep_root_y and root_name:
-            keep_set.add(f"{root_name}_Yposition")
+        self._pos_suffixes = ("_Xposition", "_Yposition", "_Zposition")
 
-        pos_cols = [c for c in columns
-                    if c.endswith("_Xposition") or c.endswith("_Yposition") or c.endswith("_Zposition")]
-        drop_cols = [c for c in pos_cols if c not in keep_set]
-        return drop_cols, keep_set
+    # ---------- helpers ----------
+
+    def _get_df(self, obj):
+        """Return (df, setter, is_track_obj)."""
+        if hasattr(obj, "values") and isinstance(obj.values, pd.DataFrame):
+            def setter(new_df): obj.values = new_df
+            return obj.values, setter, True
+        elif isinstance(obj, pd.DataFrame):
+            def setter(new_df): pass  # caller will return df
+            return obj, setter, False
+        else:
+            raise TypeError("Expected track.values (DataFrame) or a pandas DataFrame.")
+
+    def _position_columns(self, cols):
+        return [c for c in cols if c.endswith(self._pos_suffixes)]
+
+    def _build_keep_set(self, cols):
+        keep = set(self.keep_names)
+        if self.keep_root_xyz:
+            # Keep ANY root candidate XYZ that exists in this schema
+            for r in self.root_candidates:
+                for ax in ("X", "Y", "Z"):
+                    c = f"{r}_{ax}position"
+                    if c in cols:
+                        keep.add(c)
+        return keep
+
+    # ---------- sklearn API ----------
 
     def fit(self, X, y=None):
         if not X:
-            raise ValueError("PositionDropper received an empty dataset in fit().")
-        # Use the first track to snapshot the schema; we recompute per-track keeps at transform time
-        cols = X[0].values.columns.tolist()
-        self.schema_ = list(cols)
+            raise ValueError("PositionDropper.fit() received empty X.")
+        df0, _, _ = self._get_df(X[0])
+        cols0 = list(df0.columns)
+        self.schema_ = cols0
 
-        # Compute an initial drop list assuming root from first track (safe; will refine per track)
-        root_name = getattr(X[0], "root_name", None)
-        self.drop_cols_, self.keep_set_ = self._compute_drop_cols(cols, root_name=root_name)
+        keep = self._build_keep_set(cols0)
+        pos_cols = self._position_columns(cols0)
+        self.drop_cols_ = [c for c in pos_cols if c not in keep]
+
+        # Debug (optional):
+        # print("[PositionDropper] Keeping:", sorted(keep))
+        # print("[PositionDropper] Dropping:", sorted(self.drop_cols_))
+
         return self
 
     def transform(self, X, y=None):
         if not X:
-            raise ValueError("PositionDropper received an empty dataset in transform().")
+            raise ValueError("PositionDropper.transform() received empty X.")
 
         self._cache_per_track_ = []
-        Q = []
+        out = []
 
-        for track in X:
-            df = track.values
-            if self.schema_ is None:
-                self.schema_ = df.columns.tolist()
+        for obj in X:
+            df, setter, is_track = self._get_df(obj)
 
-            # Recompute drop columns for this track using its root (if asked to keep root Y)
-            root_name = getattr(track, "root_name", None)
-            drop_cols, _ = self._compute_drop_cols(df.columns.tolist(), root_name=root_name)
+            present_to_drop = [c for c in self.drop_cols_ if c in df.columns]
+            cache_df = df[present_to_drop].copy() if present_to_drop else pd.DataFrame(index=df.index)
+            self._cache_per_track_.append(cache_df)
 
-            # Cache the exact position columns we will drop (full time series, no fabrication)
-            cache = {c: df[c].copy() for c in drop_cols if c in df.columns}
-            self._cache_per_track_.append(cache)
+            new_df = df.drop(columns=present_to_drop, errors="ignore") if present_to_drop else df.copy()
 
-            t2 = track.clone()
-            if drop_cols:
-                t2.values = df.drop(columns=drop_cols, errors="ignore")
+            if is_track:
+                setter(new_df)
+                out.append(obj)
             else:
-                t2.values = df.copy()
-            Q.append(t2)
-
-        return Q
+                out.append(new_df)
+        return out
 
     def inverse_transform(self, X, copy=None):
         if self._cache_per_track_ is None:
-            raise RuntimeError("No cached positions to restore. Call transform() before inverse_transform().")
+            return X  # no-op if nothing was dropped
 
-        if len(X) != len(self._cache_per_track_):
-            # Defensive: if batch sizes differ, we restore what we can
-            print("⚠️ PositionDropper: mismatch between cached tracks and input; restoring by index overlap.")
+        def _restore(df, cache_df):
+            if cache_df is None or cache_df.empty:
+                return df
 
-        Q = []
-        for i, track in enumerate(X):
-            t2 = track.clone()
-            df = t2.values.copy()
-
-            cache = self._cache_per_track_[i] if i < len(self._cache_per_track_) else {}
-
-            # Restore each cached column, aligning length if needed
             T = len(df.index)
-            for col, series in cache.items():
-                if len(series) == T:
-                    df[col] = series.values
-                elif len(series) > T:
-                    # truncate (common if later steps trimmed/padded)
-                    df[col] = series.iloc[:T].values
+            # align lengths for all cached columns
+            aligned = {}
+            for col in cache_df.columns:
+                s = cache_df[col]
+                n = len(s)
+                if n == T:
+                    aligned[col] = s.values
+                elif n > T:
+                    aligned[col] = s.iloc[:T].values
                 else:
-                    # pad by repeating last known value to match current length
-                    pad_val = series.iloc[-1] if len(series) > 0 else 0.0
-                    pad = np.full(T - len(series), pad_val, dtype=float)
-                    df[col] = np.concatenate([series.values, pad], axis=0)
+                    pad_val = s.iloc[-1] if n > 0 else 0.0
+                    aligned[col] = np.concatenate([s.values, np.full(T - n, pad_val, dtype=float)], axis=0)
 
-            # (Optional) reorder to original schema if all columns present
+            add_df = pd.DataFrame(aligned, index=df.index)
+
+            # Overlaps: single vectorized write
+            overlap = [c for c in add_df.columns if c in df.columns]
+            if overlap:
+                df.loc[:, overlap] = add_df[overlap].to_numpy()
+                add_df = add_df.drop(columns=overlap)
+
+            # New columns: single concat
+            if not add_df.empty:
+                df = pd.concat([df, add_df], axis=1)
+
+            # Reorder to original schema if known
             if self.schema_:
-                # put known columns first, then any extras
                 ordered = [c for c in self.schema_ if c in df.columns]
                 extras = [c for c in df.columns if c not in ordered]
                 df = df[ordered + extras]
 
-            t2.values = df
-            Q.append(t2)
+            return df.copy()  # defragment
 
-        return Q
-
+        out = []
+        for i, obj in enumerate(X):
+            df, setter, is_track = self._get_df(obj)
+            cache_df = self._cache_per_track_[i] if i < len(self._cache_per_track_) else None
+            new_df = _restore(df, cache_df)
+            if is_track:
+                setter(new_df)
+                out.append(obj)
+            else:
+                out.append(new_df)
+        return out

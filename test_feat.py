@@ -17,9 +17,8 @@ if __name__ == "__main__":
     '''
     parser = BVHParser()
     # parsed_data = parser.parse(r"/host_data/van/LDA/data/motorica/bvh/kthjazz_gCH_sFM_cAll_d02_mCH_ch01_royalgardenblues_002.bvh")
-    # parsed_data = parser.parse(r"/host_data/van/LDA/data/finedance/motorica_bvh/finedance_ClassicDunHuang_sFM_cAll_d02_mClassic_ch01_xuangupiao_051.bvh")
-    # parsed_data = parser.parse(r"/host_data/van/LDA/data/finedance/motorica_bvh_v2/002.bvh")
-    parsed_data = parser.parse(r"/host_data/van/DTM/data/aistpp/motorica_bvh/gBR_sBM_cAll_d04_mBR0_ch03.bvh")
+    parsed_data = parser.parse(r"/host_data/van/LDA/data/finedance/motorica_bvh/finedance_ClassicDunHuang_sFM_cAll_d02_mClassic_ch01_xuangupiao_051.bvh")
+    # parsed_data = parser.parse(r"/host_data/van/DTM/data/aistpp/motorica_bvh/gBR_sBM_cAll_d04_mBR0_ch03.bvh")
 #     print_skel(parsed_data)
 
     index = ['RightFoot_alpha', 'RightFoot_beta', 'RightFoot_gamma',
@@ -62,21 +61,39 @@ if __name__ == "__main__":
 
     data_pipeline = Pipeline([
         ('dwnsampl', DownSampler(tgt_fps=30)),
-        ('mir', Mirror_New(axis='X', append=True)), 
-        ('jtsel', JointSelector([
-                'Spine','Spine1','Neck','Head',
-                'RightUpLeg','RightLeg','RightFoot',
-                'LeftUpLeg','LeftLeg', 'LeftFoot',
-                'RightShoulder','RightArm','RightForeArm','RightHand',
-                'LeftShoulder','LeftArm','LeftForeArm','LeftHand'
-                ], include_root=True)),       
-        ('root', RootTransformer('pos_rot_deltas', position_smoothing=1, rotation_smoothing=1)),
-        # ('drop', ColumnDropper(['Hips_Xposition', 'Hips_Zposition'])),
-        ('exp', MocapParameterizer('expmap')), 
-        ('posdrop', PositionDropper(keep_root_y=True)),
-        ('npf', Numpyfier(indices=index)),
-        ('cnt', FeatureCounter()),
+        ('mir',      Mirror_New(axis='X', append=True)),
+        ('jtsel',    JointSelector([
+                    'Spine','Spine1','Neck','Head',
+                    'RightUpLeg','RightLeg','RightFoot',
+                    'LeftUpLeg','LeftLeg', 'LeftFoot',
+                    'RightShoulder','RightArm','RightForeArm','RightHand',
+                    'LeftShoulder','LeftArm','LeftForeArm','LeftHand'
+                 ], include_root=True)),
+
+        # Produce reference_* deltas & keep absolute root cols
+        ('root',     RootTransformer('pos_rot_deltas', position_smoothing=1, rotation_smoothing=1)),
+
+        # Convert euler → expmap (reference_* stay untouched)
+        ('exp',      MocapParameterizer('expmap')),
+
+        # Now drop per-joint *_X/Y/Zposition (keep root); dropper will restore these
+        # before RootTransformer on inverse:
+        ('posdrop',  PositionDropper(
+                    keep_root_xyz=True,
+                    keep_names=[],
+                    root_candidates=["Hips","Root","Pelvis"]
+                 )),
+
+        # (Optional) remove constants AFTER all feature engineering, BEFORE numpy
+        # ('cnst',   ConstantsRemover()),
+
+        # Turn into numpy; **use the revised Numpyfier that restores full schema**
+        ('npf',      Numpyfier(indices=index)),
+
+        # Just for logging counts; it’s a no-op on inverse
+        ('cnt',      FeatureCounter()),
     ])
+
     piped_data = data_pipeline.fit_transform([parsed_data])
     data = np.asarray(piped_data)
     print(f"Tensor shape from bvh file: {data.shape}")
