@@ -6,9 +6,9 @@ from scipy import linalg
 from pymo.parsers import BVHParser
 from pymo.preprocessing import *
 from sklearn.pipeline import Pipeline
-
-# kinetic, manual
 import os
+
+
 def normalize(feat, feat2):
     mean = feat.mean(axis=0)
     std = feat.std(axis=0)
@@ -95,10 +95,10 @@ def quantized_metrics(predicted_bvh_root, gt_bvh_root):
 
 def calc_fid(kps_gen, kps_gt):
 
-    print(kps_gen.shape)
-    print(kps_gt.shape)
+    # print(kps_gen.shape)
+    # print(kps_gt.shape)
 
-    # kps_gen = kps_gen[:20, :]
+    # kps_gen = kps_gen[:19, :]
 
     mu_gen = np.mean(kps_gen, axis=0)
     sigma_gen = np.cov(kps_gen, rowvar=False)
@@ -167,15 +167,107 @@ def calc_and_save_feats(root):
         if os.path.isdir(os.path.join(root, bvh)):
             continue
         joint3d = process_motion(os.path.join(root, bvh))
-        print(joint3d.shape)
-        np.save(os.path.join(root, 'kinetic_features', bvh), extract_kinetic_features(joint3d.reshape(-1, 20, 3)))
-        np.save(os.path.join(root, 'manual_features_new', bvh), extract_manual_features(joint3d.reshape(-1, 20, 3)))
+        np.save(os.path.join(root, 'kinetic_features', bvh), extract_kinetic_features(joint3d.reshape(-1, 19, 3)))
+        np.save(os.path.join(root, 'manual_features_new', bvh), extract_manual_features(joint3d.reshape(-1, 19, 3)))
+
+
+# def to_relative(joint3d):
+#     """
+#     Convert absolute 3D joint positions to root-relative coordinates.
+
+#     Args:
+#         joint3d: np.ndarray of shape (T, J*3) or (T, J, 3)
+#         zero_root: if True, zero out the root joint (index 0)
+
+#     Returns:
+#         np.ndarray of the same shape as input, but root-relative
+#     """
+#     if joint3d.ndim == 2:
+#         T, C = joint3d.shape
+#         assert C % 3 == 0, "Input must have channels multiple of 3"
+#         J = C // 3
+#         x = joint3d.reshape(T, J, 3)
+#         flat = True
+#     elif joint3d.ndim == 3:
+#         T, J, _ = joint3d.shape
+#         x = joint3d
+#         flat = False
+#     else:
+#         raise ValueError("Input must have shape (T, J*3) or (T, J, 3)")
+
+#     root = x[:, 0:1, :]  # (T, 1, 3)
+
+#     # Subtract root from all joints
+#     x_rel = x - root
+
+#     x_rel[:, 0, :] -= x[:, 0, :]
+
+#     return x_rel.reshape(T, -1) if flat else x_rel
+    
+# def hybrid_root_global_others_relative(joints, root_index=0, flatten_like_input=True):
+#     """
+#     Build a hybrid representation:
+#       - Root joint stays in GLOBAL coordinates
+#       - All other joints become RELATIVE to the root at the same frame
+
+#     Parameters
+#     ----------
+#     joints : np.ndarray or torch.Tensor
+#         Shape (T, J, 3) or (T, J*3).
+#     root_index : int
+#         Index of the root joint in the J dimension.
+#     flatten_like_input : bool
+#         If True and input was flat (T, J*3), return flat too. Otherwise return (T, J, 3).
+
+#     Returns
+#     -------
+#     same type/shape as input (by default), with:
+#       out[:, root_index, :] = original global root positions
+#       out[:, other, :]      = (original[other] - original[root_index]) per frame
+#     """
+#     # Lazy imports to support both numpy and torch
+#     try:
+#         import torch
+#         is_torch = isinstance(joints, torch.Tensor)
+#     except Exception:
+#         torch = None
+#         is_torch = False
+
+#     # --- reshape to (T, J, 3)
+#     if joints.ndim == 2:
+#         T, C = joints.shape
+#         assert C % 3 == 0, "Channel dimension must be a multiple of 3"
+#         J = C // 3
+#         x = joints.view(T, J, 3) if is_torch else joints.reshape(T, J, 3)
+#         was_flat = True
+#     else:
+#         x = joints
+#         T, J, _ = x.shape
+#         was_flat = False
+
+#     # --- build hybrid
+#     out = x.clone() if is_torch else x.copy()       # start from absolute positions
+#     root = x[:, root_index:root_index+1, :]         # (T, 1, 3), global root
+#     # make all non-root joints relative to the root (per-frame)
+#     if root_index == 0:
+#         out[:, 1:, :] = x[:, 1:, :] - root
+#     elif root_index == J - 1:
+#         out[:, :-1, :] = x[:, :-1, :] - root
+#     else:
+#         out[:, :root_index, :]  = x[:, :root_index, :]  - root
+#         out[:, root_index+1:, :] = x[:, root_index+1:, :] - root
+#     # keep the root joint itself in global coords (already true in `out[:, root_index]`)
+
+#     # --- return shape like input if requested
+#     if flatten_like_input and was_flat:
+#         out = out.view(T, -1) if is_torch else out.reshape(T, -1)
+#     return out
 
 
 def process_motion(motion_path):
 
-    fps = 24 # for finedance
-    joints = ['Spine','Spine1','Spine2','Neck','Head',
+    fps = 30 # for finedance
+    joints = ['Spine','Spine1','Neck','Head',
                 'RightUpLeg','RightLeg','RightFoot',
                 'LeftUpLeg','LeftLeg', 'LeftFoot',
                 'RightShoulder','RightArm','RightForeArm','RightHand',
@@ -190,19 +282,35 @@ def process_motion(motion_path):
     parser = BVHParser()
     parsed_data = parser.parse(motion_path)
     piped_data = data_pipe.fit_transform([parsed_data])
-    joint_pos = np.reshape(piped_data, [-1, 20, 3]) * 0.01
-    print("joint_pos:", joint_pos.shape)  # (T, 20, 3)
-    roott = joint_pos[:, 0, :]
-    print("roott:", roott.shape)          # (T, 3)
-    joint_pos = joint_pos - roott[:, None, :]  # Calculate relative offset with respect to root
-    print("joint_pos (rel):", joint_pos.shape)
-    return joint_pos
+    joint_pos = np.reshape(piped_data, [-1, 19*3]) * 100  # to cm
+    print("joint_pos:", joint_pos.shape)  # (T, 19*3)
+
+    roott = joint_pos[:1, :3]  # the root Tx72 (Tx(24x3))
+    print("roott:", roott.shape)          # (1, 3)
+    joint3d = joint_pos - np.tile(roott, (1, 19))  # Calculate relative offset with respect to root
+
+    # relative
+    joint3d_relative = joint3d.copy()
+    joint3d_relative = joint3d_relative.reshape(-1, 19, 3)
+    joint3d_relative[:, 1:, :] = joint3d_relative[:, 1:, :] - joint3d_relative[:, 0:1, :]
+    return joint3d_relative
+    # joint_pos = np.reshape(piped_data, [-1, 19, 3])
+
+    # joint_rel = hybrid_root_global_others_relative(joint_pos, root_index=0)    # (T, 19, 3)
+    # joint_rel = to_relative(joint_pos)
+    # return joint_rel
+    # print("joint_pos:", joint_pos.shape)  # (T, 19, 3)
+    # roott = joint_pos[:, 0, :]
+    # print("roott:", roott.shape)          # (T, 3)
+    # joint_pos = joint_pos - roott[:, None, :]  # Calculate relative offset with respect to root
+    # print("joint_pos (rel):", joint_pos.shape)
+    # return joint_pos
 
 if __name__ == '__main__':
 
 
-    gt_root = '/host_data/van/LDA/data/finedance/ybot_bvh'
-    pred_root = '/host_data/van/LDA/results/finedance'
+    gt_root = '/host_data/van/DTM/data/finedance/motorica_bvh'
+    pred_root = '/host_data/van/DTM/results/finedance'
     print('Calculating and saving features')
     calc_and_save_feats(gt_root)
     calc_and_save_feats(pred_root)

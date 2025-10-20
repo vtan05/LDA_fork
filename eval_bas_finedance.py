@@ -21,8 +21,8 @@ def ba_score(music_beats, motion_beats):
 def cal_motion_beat(motion_file_path):
     parser = BVHParser()
     data_pipe = Pipeline([
-        ('dwnsampl', DownSampler(tgt_fps=24)),
-        ('jtsel', JointSelector(['Spine','Spine1','Spine2','Neck','Head',
+        ('dwnsampl', DownSampler(tgt_fps=30)),
+        ('jtsel', JointSelector(['Spine','Spine1','Neck','Head',
                 'RightUpLeg','RightLeg','RightFoot',
                 'LeftUpLeg','LeftLeg', 'LeftFoot',
                 'RightShoulder','RightArm','RightForeArm','RightHand',
@@ -36,7 +36,7 @@ def cal_motion_beat(motion_file_path):
     parsed_data = parser.parse(motion_file_path)
     joint_pos = data_pipe.fit_transform([parsed_data])
     print(f"Joint positions shape: {joint_pos.shape}")
-    joint_pos = np.array(joint_pos).reshape(-1, 20, 3)
+    joint_pos = np.array(joint_pos).reshape(-1, 19, 3)
 
     kinetic_vel = np.mean(np.sqrt(np.sum((joint_pos[1:] - joint_pos[:-1]) ** 2, axis=2)), axis=1)
     kinetic_vel = G(kinetic_vel, 5)
@@ -76,7 +76,7 @@ def calc_ba_score(directory):
             print(f"Corresponding music file {music_file} not found for motion file {motion_file}. Skipping.")
             continue
 
-        FPS = 24
+        FPS = 30
         HOP_LENGTH = 512
         SR = FPS * HOP_LENGTH
         music, _ = librosa.load(music_path, sr=SR)
@@ -99,5 +99,5 @@ def calc_ba_score(directory):
 
 
 if __name__ == '__main__':
-    directory = r"/host_data/van/LDA/results/finedance"
+    directory = r"/host_data/van/DTM/results/finedance"
     print(calc_ba_score(directory))

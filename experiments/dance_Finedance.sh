@@ -1,7 +1,7 @@
 #!/bin/bash
 
-checkpoint=/host_data/van/LDA/model/finedance/lightning_logs/version_0/checkpoints/epoch=9-step=21480.ckpt
-dest_dir=/host_data/van/LDA/results/finedance_160s
+checkpoint=/host_data/van/LDA/model/finedance/lightning_logs/version_1/checkpoints/epoch=8-step=137502.ckpt
+dest_dir=/host_data/van/LDA/results/finedance_30s_new
 
 if [ ! -d "${dest_dir}" ]; then
     mkdir -p "${dest_dir}"
@@ -13,9 +13,9 @@ basenames=$(cat "${data_dir}/test_list.txt")
 
 start=0
 seed=150
-fps=24
+fps=30
 trim_s=0
-length_s=160
+length_s=30
 trim=$((trim_s*fps))
 length=$((length_s*fps))
 fixed_seed=false
