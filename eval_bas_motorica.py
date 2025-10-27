@@ -93,5 +93,5 @@ def calc_ba_score(directory):
 
 
 if __name__ == '__main__':
-    directory = r"/host_data/van/DTM/results/dtm_finedance_test"
+    directory = r"/host_data/van/LDA/results/motorica_90s"
     print(calc_ba_score(directory))

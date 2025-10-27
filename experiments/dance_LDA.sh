@@ -1,7 +1,7 @@
 #!/bin/bash
 
 checkpoint=/host_data/van/LDA/model/motorica/lightning_logs/version_0/checkpoints/epoch=9-step=86250.ckpt
-dest_dir=/host_data/van/LDA/results/motorica
+dest_dir=/host_data/van/LDA/results/motorica_90s
 
 if [ ! -d "${dest_dir}" ]; then
     mkdir -p "${dest_dir}"
@@ -15,7 +15,7 @@ start=0
 seed=150
 fps=30
 trim_s=0
-length_s=10
+length_s=90
 trim=$((trim_s*fps))
 length=$((length_s*fps))
 fixed_seed=false
